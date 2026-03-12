@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff" id="meta-theme-color">
+  <meta name="description" content="MealForge — offline-first recipe prep and storage">
+  <title>MealForge</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./styles/theme.css">
+  <link rel="stylesheet" href="./styles/main.css">
+  <link rel="icon" href="./icons/favicon.ico">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <script>
+    (function() {
+      var themes = { classic: '#ffffff', forge: '#1A1A1A', midnight: '#050505', relaxed: '#F4F1EA' };
+      var t = localStorage.getItem('mealforge-theme') || 'classic';
+      if (!themes[t]) t = 'classic';
+      document.documentElement.setAttribute('data-theme', t);
+      var meta = document.getElementById('meta-theme-color');
+      if (meta) meta.setAttribute('content', themes[t]);
+    })();
+  </script>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>MealForge</h1>
+      <button type="button" id="settings-btn" aria-label="Settings">⚙</button>
+    </header>
+    <div class="app-tabs" role="tablist" aria-label="Main navigation">
+      <button type="button" role="tab" id="tab-cookbook" aria-selected="true" aria-controls="view-cookbook">Cookbook</button>
+      <button type="button" role="tab" id="tab-planner" aria-selected="false" aria-controls="view-planner">Planner</button>
+      <button type="button" role="tab" id="tab-shopping" aria-selected="false" aria-controls="view-shopping">Shopping List</button>
+    </div>
+    <div id="view-cookbook" class="view-panel is-active" role="tabpanel">
+      <div class="cookbook-actions">
+        <button type="button" id="open-add-recipe-modal" class="btn btn-primary">Add Recipe</button>
+      </div>
+      <div id="tag-filters-wrap" class="tag-filters-wrap is-hidden"></div>
+      <div id="recipe-list"></div>
+    </div>
+    <div id="view-planner" class="view-panel" role="tabpanel">
+      <div id="planner-days"></div>
+    </div>
+    <div id="view-shopping" class="view-panel" role="tabpanel">
+      <section class="shopping-list-section">
+        <div class="shopping-list-dates">
+          <label for="list-start-date">Start</label>
+          <input type="date" id="list-start-date" aria-label="List start date">
+          <label for="list-end-date">End</label>
+          <input type="date" id="list-end-date" aria-label="List end date">
+          <button type="button" id="btn-generate-list" class="btn btn-primary">Generate List</button>
+          <button type="button" id="btn-delete-list" class="btn cancel-edit-btn">Delete List</button>
+        </div>
+        <div id="shopping-list-actions" class="shopping-list-actions is-hidden"></div>
+        <div id="shopping-list-container" class="shopping-list-container"></div>
+      </section>
+    </div>
+  </div>
+  <div id="settings-modal" role="dialog" aria-label="Settings" aria-modal="true">
+    <div class="modal-content modal-content--wide">
+      <h2>Settings</h2>
+      <div class="settings-section">
+        <h3>Theme</h3>
+        <select id="settings-theme" aria-label="Theme">
+          <option value="classic">Classic</option>
+          <option value="forge">Forge</option>
+          <option value="midnight">Midnight</option>
+          <option value="relaxed">Relaxed</option>
+        </select>
+      </div>
+      <div class="settings-section">
+        <h3>Meal Labels</h3>
+        <div id="settings-meal-labels" class="settings-list"></div>
+        <div class="settings-add-row">
+          <input type="text" id="settings-meal-label-input" placeholder="e.g. Breakfast, Dinner" aria-label="New meal label">
+          <button type="button" id="settings-add-meal-label" class="btn btn-primary">Add</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Tag Library</h3>
+        <div id="settings-tag-library" class="settings-list"></div>
+        <div class="settings-add-row">
+          <input type="text" id="settings-tag-input" placeholder="e.g. Quick, Vegetarian" aria-label="New tag">
+          <button type="button" id="settings-add-tag" class="btn btn-primary">Add</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Cookbook</h3>
+        <div class="modal-actions">
+          <button type="button" id="export-cookbook-btn" class="btn btn-primary">Export Cookbook</button>
+          <label for="import-cookbook-file">
+            <span class="btn btn-primary">Import Cookbook</span>
+            <input type="file" id="import-cookbook-file" accept=".json,application/json" hidden>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="add-to-planner-modal" role="dialog" aria-label="Add to planner" aria-modal="true">
+    <div class="modal-content">
+      <h2>Add to Planner</h2>
+      <div class="modal-form-group">
+        <label for="planner-date">Date</label>
+        <input type="date" id="planner-date" aria-label="Plan date">
+      </div>
+      <div class="modal-form-group">
+        <label for="planner-label">Meal</label>
+        <select id="planner-label" aria-label="Meal label"></select>
+      </div>
+      <div class="modal-form-group">
+        <label for="planner-scale">Servings</label>
+        <select id="planner-scale" aria-label="Servings">
+          <option value="1">1x</option>
+          <option value="2">2x</option>
+          <option value="3">3x</option>
+        </select>
+      </div>
+      <div class="modal-actions-row">
+        <button type="button" id="add-to-planner-cancel" class="btn cancel-edit-btn">Cancel</button>
+        <button type="button" id="add-to-planner-save" class="btn btn-primary">Add</button>
+      </div>
+    </div>
+  </div>
+  <div id="pick-recipe-modal" class="modal-overlay" role="dialog" aria-label="Pick a recipe" aria-modal="true">
+    <div class="modal-content modal-content--wide">
+      <h2>Add Recipe to Day</h2>
+      <div class="modal-form-group">
+        <label for="pick-recipe-label">Meal</label>
+        <select id="pick-recipe-label" aria-label="Meal label"></select>
+      </div>
+      <input type="text" id="pick-recipe-search" class="pick-recipe-search" placeholder="Search by title or ingredients..." aria-label="Search recipes">
+      <div id="pick-recipe-list" class="pick-recipe-list"></div>
+      <div class="modal-actions-row">
+        <button type="button" id="pick-recipe-cancel" class="btn cancel-edit-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <div id="add-recipe-modal" class="modal-overlay" role="dialog" aria-label="Add recipe" aria-modal="true">
+    <div class="modal-content">
+      <h2>Add Recipe</h2>
+      <div class="input-section">
+        <input type="text" id="recipe-url" placeholder="Paste recipe URL..." autocomplete="url">
+        <button type="button" id="add-recipe-btn" class="btn btn-primary"><span class="btn-text">Import</span></button>
+      </div>
+      <div class="modal-actions-row">
+        <button type="button" id="add-recipe-modal-close" class="btn cancel-edit-btn">Close</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

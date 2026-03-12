@@ -1,0 +1,12 @@
+@.cursorrules 
+I am building a clean, offline-first PWA called "PrepVault". 
+I need to implement `modules/parser.js` to extract JSON-LD recipe data from URLs.
+
+Please implement `modules/parser.js` following these criteria:
+1. It must take a URL string, fetch the page, and use DOMParser to query for 'script[type="application/ld+json"]'.
+2. It must handle JSON-LD both as a single object and an array of objects.
+3. It must return a clean object: { name, ingredients (as array of strings), url }.
+4. If no JSON-LD is found, return null and log an error.
+5. All code must adhere to the constraints defined in our .cursorrules file.
+
+After writing the code, please provide a brief usage example showing how this module should be imported and called from `app.js`.

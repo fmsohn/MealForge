@@ -1,0 +1,50 @@
+/**
+ * MealForge — theme variables and color system.
+ * Load first; other styles use var(--mf-*) for consistency.
+ */
+
+:root {
+  /* Primary orange accent — clean, professional */
+  --mf-primary: #e85d04;
+  --mf-primary-hover: #d45103;
+  --mf-on-primary: #ffffff;
+  --mf-accent: #e85d04;
+
+  /* Backgrounds */
+  --mf-bg: #fafafa;
+  --mf-surface: #ffffff;
+  --mf-surface-alt: #f0f0f0;
+  --mf-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Text */
+  --mf-text: #1a1a1a;
+  --mf-text-muted: #5c5c5c;
+  --mf-link: #c44d00;
+
+  /* Borders & radius */
+  --mf-border: #e5e5e5;
+  --mf-border-radius: 8px;
+  --mf-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  /* Forms */
+  --mf-input-bg: #ffffff;
+  --mf-error: #b91c1c;
+  --mf-error-bg: #fef2f2;
+
+  /* Spacing (optional — used by main.css) */
+  --mf-spacing-sm: 0.5rem;
+  --mf-spacing-md: 1rem;
+  --mf-spacing-lg: 1.25rem;
+}
+
+/* Dark theme variant (optional — can be toggled via [data-theme] on html) */
+[data-theme='forge'] {
+  --mf-bg: #1a1a1a;
+  --mf-surface: #252525;
+  --mf-surface-alt: #2d2d2d;
+  --mf-text: #f5f5f5;
+  --mf-text-muted: #a3a3a3;
+  --mf-border: #3d3d3d;
+  --mf-input-bg: #2d2d2d;
+  --mf-overlay: rgba(0, 0, 0, 0.7);
+}
