@@ -1,0 +1,698 @@
+/**
+ * MealForge — base layout and structure (mobile-first PWA).
+ * Uses --mf-* variables from theme.css for background, text, border-radius.
+ * Load this before theme.css so layout is defined first; theme.css overrides colors.
+ *
+ * After changing this file: Unregister Service Worker and Clear Site Data in DevTools
+ * (Application → Service Workers / Storage) so these CSS changes apply immediately.
+ */
+
+/* Base */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--mf-bg);
+  color: var(--mf-text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+.install-btn#installBtn,
+#installBtn {
+  display: none;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+/* --- Core layout (referenced by JS/HTML) --- */
+
+/* Main content wrapper: centered, max-width, padding */
+.container {
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: var(--mf-spacing-md, 1rem) var(--mf-spacing-lg, 1.25rem);
+}
+
+/* Top navigation / tab bar */
+.nav-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--mf-border);
+  background: var(--mf-surface);
+}
+
+.nav-bar [role="tab"],
+.nav-bar .nav-item {
+  padding: 0.6rem 1rem;
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--mf-text-muted);
+  cursor: pointer;
+}
+
+.nav-bar [role="tab"][aria-selected="true"],
+.nav-bar .nav-item.is-active {
+  color: var(--mf-primary);
+  border-bottom-color: var(--mf-primary);
+}
+
+/* Card for a single recipe (grid item); same max-width and margin as .main-header */
+.recipe-card {
+  width: 100%;
+  min-width: 30rem;
+  max-width: var(--container-width, 42rem);
+  margin: 0 auto;
+  padding: var(--mf-spacing-md, 1rem);
+  border-radius: var(--mf-border-radius);
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mf-spacing-sm, 0.5rem);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.recipe-card:hover {
+  box-shadow: var(--mf-card-shadow);
+  border-color: var(--mf-primary);
+}
+
+/* Full-screen modal backdrop and centering */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  background: var(--mf-overlay);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-overlay .modal-content {
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-border-radius);
+  padding: var(--mf-spacing-lg, 1.25rem);
+  max-width: 600px;
+  width: 100%;
+  margin: auto;
+}
+
+/* Primary action button (alias for .btn-primary) */
+.button-primary,
+.btn-primary {
+  background: var(--mf-primary);
+  color: var(--mf-on-primary);
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: var(--mf-border-radius);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.button-primary:hover,
+.btn-primary:hover {
+  background: var(--mf-primary-hover);
+}
+
+/* Recipe edit error message: hidden by default; show with .is-visible (set by JS) */
+.recipe-edit-error {
+  display: none;
+  color: var(--mf-error);
+  background: var(--mf-error-bg);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--mf-border-radius);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.recipe-edit-error.is-visible {
+  display: block;
+}
+
+/* Add Recipe button progress bar: JS sets --progress (0–100); this uses it */
+#add-recipe-btn.is-adding {
+  position: relative;
+  overflow: hidden;
+}
+
+#add-recipe-btn.is-adding::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--progress, 0) * 1%);
+  background: rgba(255, 255, 255, 0.3);
+  transition: width 0.15s ease;
+}
+
+/* Full-width header: brand (title), Add Recipe (url + button), actions (gear); same max-width and margin as .recipe-card */
+.main-header,
+header {
+  width: 100%;
+  max-width: var(--container-width, 42rem);
+  margin: 0 auto;
+  padding: var(--mf-spacing-md, 1rem) var(--mf-spacing-lg, 1.25rem);
+  background: var(--mf-surface);
+  border-bottom: 1px solid var(--mf-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-brand {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.header-brand h1 {
+  margin: 0;
+}
+
+.header-add-recipe {
+  display: flex;
+  align-items: center;
+  gap: var(--mf-spacing-sm, 0.5rem);
+  flex: 1;
+  min-width: 0;
+  max-width: 24rem;
+}
+
+.header-actions {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Add Recipe button: above background, below modals; minimum touch target */
+#add-recipe-btn {
+  position: relative;
+  z-index: 10;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-add-recipe input[type="url"] {
+  flex: 1;
+  min-width: 8rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-border-radius);
+  background: var(--mf-input-bg);
+  color: var(--mf-text);
+  font-size: 0.9375rem;
+}
+
+.header-add-recipe input[type="url"]:focus {
+  outline: none;
+  border-color: var(--mf-primary);
+}
+
+.main-header h1,
+header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--mf-text);
+}
+
+/* Main container: --container-width shared by header and recipe cards for alignment */
+.shell {
+  --container-width: 42rem;
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: var(--mf-spacing-md, 1rem) var(--mf-spacing-lg, 1.25rem);
+}
+
+/* Responsive recipe grid container */
+#recipe-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--mf-spacing-md, 1rem);
+  margin-top: var(--mf-spacing-sm, 0.5rem);
+}
+
+@media (min-width: 640px) {
+  #recipe-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  #recipe-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Buttons (base .btn) */
+.btn {
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: var(--mf-border-radius);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+  background: var(--mf-surface-alt);
+  color: var(--mf-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.btn:hover {
+  background: var(--mf-border);
+}
+
+/* Form inputs */
+input[type="text"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-border-radius);
+  background: var(--mf-input-bg);
+  color: var(--mf-text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--mf-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--mf-text-muted);
+}
+
+/* View panels */
+.view-panel {
+  display: none;
+}
+
+.view-panel.is-active {
+  display: block;
+}
+
+/* Section spacing */
+.cookbook-actions,
+.tag-filters-wrap,
+.shopping-list-section {
+  margin-bottom: var(--mf-spacing-md, 1rem);
+}
+
+.planner-day,
+.shopping-list-container {
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-border-radius);
+  padding: var(--mf-spacing-md, 1rem);
+}
+
+.planner-day {
+  margin-bottom: var(--mf-spacing-md, 1rem);
+}
+
+/* Modal overlays (structure) */
+.modal-overlay .modal-content,
+.modal-content {
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-border-radius);
+  padding: var(--mf-spacing-lg, 1.25rem);
+}
+
+.modal-form-group {
+  margin-bottom: var(--mf-spacing-md, 1rem);
+}
+
+.modal-form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mf-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.modal-actions-row {
+  display: flex;
+  gap: var(--mf-spacing-sm, 0.5rem);
+  justify-content: flex-end;
+  margin-top: var(--mf-spacing-md, 1rem);
+}
+
+.cancel-edit-btn {
+  background: var(--mf-surface-alt);
+  color: var(--mf-text-muted);
+}
+
+.recipe-edit-refine-import-btn {
+  background: transparent;
+  color: var(--mf-text-muted);
+  border: 1px solid var(--mf-border);
+}
+
+.recipe-edit-refine-import-btn:hover {
+  background: rgba(0, 102, 255, 0.08);
+  color: #0066ff;
+  border-color: #0066ff;
+}
+
+/* Refine Import card: theme-aware; single unified surface (no inner frame); stays visible when scrolling */
+.refine-import-card,
+.refine-import-card > * {
+  background-color: var(--refine-bg, #2d3436) !important;
+  color: var(--refine-text, #ffffff) !important;
+}
+.refine-import-card {
+  border: 1px solid var(--refine-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--mf-border-radius, 12px);
+  margin: 0;
+  padding: 20px;
+  box-shadow: var(--mf-card-shadow, 0 4px 12px rgba(0, 0, 0, 0.25));
+  position: -webkit-sticky;
+  position: sticky;
+  top: 10px;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+  font-family: var(--mf-font-family, 'Michroma', sans-serif);
+}
+.refine-import-card > * {
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.refine-import-card .selection-mode-step-text,
+.refine-import-card .selection-mode-header {
+  color: var(--refine-text, #ffffff) !important;
+}
+.refine-import-card .selection-mode-reset-btn {
+  background: transparent !important;
+  border: 1px solid var(--refine-text, #ffffff) !important;
+  color: var(--refine-text, #ffffff) !important;
+}
+.refine-import-card .selection-mode-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--refine-text, #ffffff) !important;
+  color: var(--refine-text, #ffffff);
+}
+
+.refine-import-card .selection-mode-manual-btn {
+  background: transparent !important;
+  border: 1px solid var(--refine-text, #ffffff) !important;
+  color: var(--refine-text, #ffffff) !important;
+}
+.refine-import-card .selection-mode-manual-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--refine-text, #ffffff) !important;
+  color: var(--refine-text, #ffffff);
+}
+
+/* Manual entry form: theme-aware, no inner frame, flush layout */
+.refine-import-card .manual-entry-form {
+  margin: 0 !important;
+  padding: 0.75rem 0 0 !important;
+  background: transparent !important;
+  color: var(--refine-text, #ffffff) !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+.refine-import-card .manual-entry-form[hidden] {
+  display: none !important;
+}
+.refine-import-card .manual-entry-form label,
+.refine-import-card .manual-entry-form input,
+.refine-import-card .manual-entry-form select,
+.refine-import-card .manual-entry-form .selection-mode-manual-add-btn {
+  margin: 0 !important;
+  background-color: transparent !important;
+  color: var(--refine-text, #ffffff) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  font-family: var(--mf-font-family, 'Michroma', sans-serif);
+}
+.refine-import-card .manual-entry-form select option {
+  background: var(--refine-bg, #2d3436);
+  color: var(--refine-text, #ffffff);
+}
+.refine-import-card .manual-entry-form .selection-mode-manual-add-btn {
+  grid-column: span 2;
+  align-self: start;
+  cursor: pointer;
+}
+.refine-import-card .manual-entry-form .selection-mode-manual-add-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Theme-specific overrides for Refine Import card (data-theme on <html>) */
+[data-theme='classic'] .refine-import-card,
+.theme-classical .refine-import-card {
+  --refine-bg: #2d3436;
+  --refine-text: #ffffff;
+}
+[data-theme='relaxed'] .refine-import-card,
+.theme-relaxed .refine-import-card {
+  --refine-bg: #000000;
+  --refine-text: #ffffff;
+}
+[data-theme='forge'] .refine-import-card {
+  --refine-bg: #2d3436;
+  --refine-text: #ffffff;
+}
+[data-theme='midnight'] .refine-import-card {
+  --refine-bg: #0a0a0a;
+  --refine-text: #ffffff;
+}
+
+/* Modal visibility and overlay positioning */
+#settings-modal,
+#add-to-planner-modal,
+#pick-recipe-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--mf-overlay);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+#settings-modal.open,
+#add-to-planner-modal.open,
+#pick-recipe-modal.open {
+  display: flex;
+}
+
+#settings-modal .modal-content {
+  min-width: 16rem;
+}
+
+.modal-content--wide {
+  min-width: 20rem;
+  max-width: 90vw;
+}
+
+.modal-overlay .modal-content {
+  padding: 2rem;
+}
+
+body.is-add-recipe-modal-open {
+  overflow: hidden;
+}
+
+/* Tabs */
+.app-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--mf-border);
+}
+
+.app-tabs [role="tab"] {
+  padding: 0.6rem 1rem;
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--mf-text-muted);
+  cursor: pointer;
+}
+
+.app-tabs [role="tab"][aria-selected="true"] {
+  color: var(--mf-primary);
+  border-bottom-color: var(--mf-primary);
+}
+
+/* Add recipe form (inline in Cookbook view) */
+.add-recipe-row {
+  display: flex;
+  gap: var(--mf-spacing-sm, 0.5rem);
+  margin-bottom: var(--mf-spacing-md, 1rem);
+  flex-wrap: wrap;
+}
+
+#add-recipe-url {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.pick-recipe-search {
+  margin-bottom: 1rem;
+}
+
+.pick-recipe-list {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.pick-recipe-item {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: var(--mf-surface-alt);
+  border: 0;
+  border-radius: var(--mf-border-radius);
+  margin-bottom: 0.5rem;
+  color: var(--mf-text);
+  cursor: pointer;
+}
+
+#settings-btn {
+  padding: 0.4rem;
+  border: 0;
+  border-radius: var(--mf-border-radius);
+  background: transparent;
+  color: var(--mf-text-muted);
+  cursor: pointer;
+  line-height: 1;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Keep large touch target; no block-level or full-width so it stays inline with title */
+}
+
+/* Mobile: single slim row — MealForge + gear on same line; Add Recipe drops to second row */
+@media (max-width: 600px) {
+  .main-header,
+  header {
+    padding: var(--mf-spacing-sm, 0.5rem) var(--mf-spacing-md, 1rem);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .main-header .header-brand {
+    order: 1;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  .main-header .header-actions {
+    order: 2;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .main-header .header-add-recipe {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    max-width: none;
+  }
+  .main-header #settings-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+.settings-section {
+  margin-bottom: var(--mf-spacing-md, 1rem);
+}
+
+.settings-section h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9375rem;
+  color: var(--mf-text-muted);
+}
+
+.settings-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings-list-item {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: var(--mf-surface-alt);
+  border-radius: var(--mf-border-radius);
+  font-size: 0.875rem;
+  color: var(--mf-text);
+  border: none;
+  cursor: pointer;
+}
+
+.settings-add-row,
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.settings-add-row input {
+  flex: 1;
+  min-width: 8rem;
+}
+
+/* Planner today highlight */
+.planner-day.is-today {
+  border: 2px solid var(--mf-accent);
+}

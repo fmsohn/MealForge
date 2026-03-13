@@ -6,27 +6,43 @@
   <meta name="theme-color" content="#ffffff" id="meta-theme-color">
   <meta name="description" content="MealForge — offline-first recipe prep and storage">
   <title>MealForge</title>
-  <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles/theme.css">
-  <link rel="stylesheet" href="./styles/main.css">
-  <link rel="icon" href="./icons/favicon.ico">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
   <script>
-    (function() {
-      var themes = { classic: '#ffffff', forge: '#1A1A1A', midnight: '#050505', relaxed: '#F4F1EA' };
-      var t = localStorage.getItem('mealforge-theme') || 'classic';
-      if (!themes[t]) t = 'classic';
-      document.documentElement.setAttribute('data-theme', t);
-      var meta = document.getElementById('meta-theme-color');
-      if (meta) meta.setAttribute('content', themes[t]);
+    (function () {
+      try {
+        var stored = localStorage.getItem('theme') || localStorage.getItem('mealforge-theme');
+        var theme = stored || 'forge';
+        if (stored === 'classic') {
+          localStorage.removeItem('theme');
+          theme = 'forge';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.className = (document.documentElement.className || '').replace(/\btheme-\w+\b/g, '').trim();
+        document.documentElement.classList.add('theme-' + theme);
+        var themeColors = { classic: '#ffffff', forge: '#1A1A1A', midnight: '#050505', relaxed: '#F4F1EA' };
+        var meta = document.getElementById('meta-theme-color');
+        if (meta) meta.setAttribute('content', themeColors[theme] || themeColors.forge);
+      } catch (e) {}
     })();
   </script>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="apple-touch-icon" href="/icons/appicon-192.png">
 </head>
 <body>
+  <button type="button" id="installBtn" class="is-hidden" aria-label="Install app">Install</button>
   <div class="shell">
-    <header>
-      <h1>MealForge</h1>
-      <button type="button" id="settings-btn" aria-label="Settings">⚙</button>
+    <header class="main-header">
+      <div class="header-brand">
+        <h1>MealForge</h1>
+      </div>
+      <div class="header-add-recipe">
+        <input type="url" id="recipe-url" placeholder="Paste recipe URL…" autocomplete="url" aria-label="Recipe URL">
+        <button type="button" id="add-recipe-btn" class="btn btn-primary"><span class="btn-text">Add Recipe</span></button>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="settings-btn" aria-label="Settings">⚙</button>
+      </div>
     </header>
     <div class="app-tabs" role="tablist" aria-label="Main navigation">
       <button type="button" role="tab" id="tab-cookbook" aria-selected="true" aria-controls="view-cookbook">Cookbook</button>
@@ -34,9 +50,6 @@
       <button type="button" role="tab" id="tab-shopping" aria-selected="false" aria-controls="view-shopping">Shopping List</button>
     </div>
     <div id="view-cookbook" class="view-panel is-active" role="tabpanel">
-      <div class="cookbook-actions">
-        <button type="button" id="open-add-recipe-modal" class="btn btn-primary">Add Recipe</button>
-      </div>
       <div id="tag-filters-wrap" class="tag-filters-wrap is-hidden"></div>
       <div id="recipe-list"></div>
     </div>
@@ -134,18 +147,6 @@
       <div id="pick-recipe-list" class="pick-recipe-list"></div>
       <div class="modal-actions-row">
         <button type="button" id="pick-recipe-cancel" class="btn cancel-edit-btn">Cancel</button>
-      </div>
-    </div>
-  </div>
-  <div id="add-recipe-modal" class="modal-overlay" role="dialog" aria-label="Add recipe" aria-modal="true">
-    <div class="modal-content">
-      <h2>Add Recipe</h2>
-      <div class="input-section">
-        <input type="text" id="recipe-url" placeholder="Paste recipe URL..." autocomplete="url">
-        <button type="button" id="add-recipe-btn" class="btn btn-primary"><span class="btn-text">Import</span></button>
-      </div>
-      <div class="modal-actions-row">
-        <button type="button" id="add-recipe-modal-close" class="btn cancel-edit-btn">Close</button>
       </div>
     </div>
   </div>

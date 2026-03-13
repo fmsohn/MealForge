@@ -9,7 +9,8 @@ const CACHE_NAME = 'mealforge-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './styles/theme.css',
+  './css/theme.css',
+  './css/main.css',
   './app.js',
   './manifest.json',
   './icons/appicon-192.png',
