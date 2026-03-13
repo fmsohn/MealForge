@@ -11,22 +11,22 @@
 const CACHE_VERSION = 'v3';
 const CACHE_NAME = 'mealforge-static-' + CACHE_VERSION;
 
-/** Critical static assets — absolute paths */
+/** Critical static assets — relative to scope (e.g. GitHub Pages subpath) */
 const CRITICAL_ASSETS = [
-  '/index.html',
-  '/app.js',
-  '/css/main.css',
-  '/css/theme.css',
-  '/manifest.json',
+  './index.html',
+  './app.js',
+  './css/main.css',
+  './css/theme.css',
+  './manifest.json',
 ];
 
 /** JS modules required by app.js — fetched and cached at install */
 const MODULE_PATHS = [
-  '/modules/db.js',
-  '/modules/parser.js',
-  '/modules/selection-mode.js',
-  '/modules/ui.js',
-  '/utils/recipeUtils.js',
+  './modules/db.js',
+  './modules/parser.js',
+  './modules/selection-mode.js',
+  './modules/ui.js',
+  './utils/recipeUtils.js',
 ];
 
 /**
@@ -36,7 +36,7 @@ const MODULE_PATHS = [
 const OPTIONAL_ASSETS = [];
 
 function originUrl(path) {
-  return new URL(path, self.location.origin).href;
+  return new URL(path, self.location.href).href;
 }
 
 function urlsToCache() {
@@ -119,7 +119,7 @@ self.addEventListener('fetch', (event) => {
       }
 
       if (request.mode === 'navigate') {
-        const fallback = await cache.match(originUrl('/index.html'));
+        const fallback = await cache.match(originUrl('./index.html'));
         if (fallback) return fallback;
       }
 

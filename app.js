@@ -30,10 +30,10 @@ if ('serviceWorker' in navigator) {
         console.error('SECURE CONTEXT MISSING: Check chrome://flags for http://[YOUR-IP]:5500');
         return;
       }
-      const swScope = '/';
+      const swScope = './';
       console.log('[SW] Registering service-worker.js with scope:', swScope);
       navigator.serviceWorker
-        .register('/service-worker.js', { scope: swScope })
+        .register('./service-worker.js', { scope: swScope })
         .then((reg) => {
           console.log('[SW] Registration successful, scope:', reg.scope);
         })
