@@ -767,7 +767,7 @@ export function updateImportProgress(percent) {
 
 /**
  * Attaches event listeners: tabs, Add Recipe, Export Cookbook, Import, Edit, Settings (meal labels + tag library), tag filter.
- * @param {{ onAddRecipe?: (url: string) => Promise<void>, onOpenBatchImport?: () => void, onManualEntry?: () => void, onExportCookbook?: () => Promise<void>, onImportCookbookFile?: (file: File) => Promise<void>, onEditRecipeClick?: (id: string, card: HTMLElement) => void|Promise<void>, getSettings?: () => Promise<{ mealLabels: string[], tagLibrary: string[] }>, onAddMealLabel?: (label: string) => Promise<void>, onRemoveMealLabel?: (label: string) => Promise<void>, onAddTag?: (tag: string) => Promise<void>, onRemoveTag?: (tag: string) => Promise<void>, onThemeChange?: (themeName: string) => void, onGenerateList?: () => void|Promise<void>, onDeleteList?: () => void|Promise<void>, onShoppingTabShow?: () => void|Promise<void> }} handlers
+ * @param {{ onAddRecipe?: (url: string) => Promise<void>, onOpenBatchImport?: () => void, onManualEntry?: () => void, onOpenMagicLink?: () => void, onExportCookbook?: () => Promise<void>, onImportCookbookFile?: (file: File) => Promise<void>, onEditRecipeClick?: (id: string, card: HTMLElement) => void|Promise<void>, getSettings?: () => Promise<{ mealLabels: string[], tagLibrary: string[] }>, onAddMealLabel?: (label: string) => Promise<void>, onRemoveMealLabel?: (label: string) => Promise<void>, onAddTag?: (tag: string) => Promise<void>, onRemoveTag?: (tag: string) => Promise<void>, onThemeChange?: (themeName: string) => void, onGenerateList?: () => void|Promise<void>, onDeleteList?: () => void|Promise<void>, onShoppingTabShow?: () => void|Promise<void> }} handlers
  */
 export function initUI(handlers) {
   const addBtn = document.getElementById('add-recipe-btn');
@@ -825,6 +825,12 @@ export function initUI(handlers) {
     importMoreManual.addEventListener('click', () => {
       closeImportMoreDropdown();
       handlers.onManualEntry();
+    });
+  }
+  if (document.getElementById('import-more-magic-link') && typeof handlers.onOpenMagicLink === 'function') {
+    document.getElementById('import-more-magic-link').addEventListener('click', () => {
+      closeImportMoreDropdown();
+      handlers.onOpenMagicLink();
     });
   }
 

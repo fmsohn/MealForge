@@ -47,6 +47,7 @@
               <div id="import-more-dropdown" class="import-more-dropdown is-hidden" role="menu">
                 <button type="button" id="import-more-batch" class="import-more-item" role="menuitem">Batch Import</button>
                 <button type="button" id="import-more-manual" class="import-more-item" role="menuitem">Manual Entry</button>
+                <button type="button" id="import-more-magic-link" class="import-more-item" role="menuitem">Install Magic Link</button>
               </div>
             </div>
           </div>
@@ -167,6 +168,30 @@
       <div id="batch-import-summary" class="batch-import-summary is-hidden">
         <p id="batch-import-summary-text" class="batch-import-summary-text"></p>
         <button type="button" id="batch-import-close" class="btn btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="magic-link-modal" role="dialog" aria-label="MealForge Magic Link" aria-modal="true">
+    <div class="modal-content modal-content--wide">
+      <h2>MealForge Magic Link</h2>
+      <p class="magic-link-description">Save recipes instantly from your browser. This works on sites that are usually hard to scrape.</p>
+      <div class="magic-link-step">
+        <p class="magic-link-step-label">Step 1: Copy this code</p>
+        <div class="magic-link-code-wrap">
+          <code id="magic-link-code" class="magic-link-code">javascript:(function(){var t=encodeURIComponent(document.title);var u=encodeURIComponent(window.location.href);window.location.href='https://fmsohn.github.io/mealforge/?title='+t+'&url='+u;})();</code>
+          <button type="button" id="magic-link-copy-btn" class="btn btn-primary magic-link-copy-btn">Copy</button>
+        </div>
+      </div>
+      <div class="magic-link-step">
+        <p class="magic-link-step-label">Step 2</p>
+        <p>Create a new bookmark in your browser (any page will do).</p>
+      </div>
+      <div class="magic-link-step">
+        <p class="magic-link-step-label">Step 3</p>
+        <p>Edit the bookmark, name it "Save to MealForge", and paste the code above into the URL field.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="magic-link-close" class="btn btn-primary">Close</button>
       </div>
     </div>
   </div>

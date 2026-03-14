@@ -571,6 +571,17 @@ async function refreshShoppingList(planId) {
 }
 
 function runApp() {
+  /** Magic Link: capture ?title= and ?url= from address bar, then clear so refresh doesn't re-open */
+  let magicLinkUrl = null;
+  const searchParams = new URLSearchParams(window.location.search);
+  const magicTitle = searchParams.get('title');
+  const magicUrl = searchParams.get('url');
+  if (magicTitle !== null && magicTitle !== '' && magicUrl !== null && magicUrl !== '') {
+    magicLinkUrl = magicUrl;
+    const cleanUrl = window.location.pathname + (window.location.hash || '');
+    window.history.replaceState({}, document.title, cleanUrl || '/');
+  }
+
   const installBtn = document.getElementById('installBtn');
   if (installBtn) {
     installBtn.addEventListener('click', () => {
@@ -602,8 +613,36 @@ function runApp() {
     if (batchImportSummary) batchImportSummary.classList.add('is-hidden');
   }
 
+  const magicLinkModal = document.getElementById('magic-link-modal');
+  const magicLinkCopyBtn = document.getElementById('magic-link-copy-btn');
+  const magicLinkCode = document.getElementById('magic-link-code');
+  const magicLinkClose = document.getElementById('magic-link-close');
+
+  function openMagicLinkModal() {
+    if (magicLinkModal) magicLinkModal.classList.add('open');
+  }
+  function closeMagicLinkModal() {
+    if (magicLinkModal) magicLinkModal.classList.remove('open');
+    if (magicLinkCopyBtn) magicLinkCopyBtn.textContent = 'Copy';
+  }
+
+  if (magicLinkCopyBtn && magicLinkCode) {
+    magicLinkCopyBtn.addEventListener('click', () => {
+      const code = magicLinkCode.textContent || '';
+      navigator.clipboard.writeText(code).then(() => {
+        magicLinkCopyBtn.textContent = 'Copied!';
+        setTimeout(() => { magicLinkCopyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(() => {});
+    });
+  }
+  if (magicLinkClose) magicLinkClose.addEventListener('click', closeMagicLinkModal);
+  if (magicLinkModal) {
+    magicLinkModal.addEventListener('click', (e) => { if (e.target === magicLinkModal) closeMagicLinkModal(); });
+  }
+
   initUI({
     onOpenBatchImport: openBatchImportModal,
+    onOpenMagicLink: openMagicLinkModal,
     onAddRecipe: async (url) => {
       try {
         const saved = await importNewRecipe(url, { onProgress: updateImportProgress });
@@ -871,6 +910,17 @@ function runApp() {
 
   refreshRecipeList();
   refreshPlanner();
+
+  /** Pre-fill Add Recipe and switch to Cookbook when opened via Magic Link */
+  if (magicLinkUrl) {
+    const urlInput = document.getElementById('recipe-url');
+    if (urlInput) {
+      urlInput.value = magicLinkUrl;
+      urlInput.focus();
+    }
+    const tabCookbook = document.getElementById('tab-cookbook');
+    if (tabCookbook) tabCookbook.click();
+  }
 }
 
 if (document.readyState === 'loading') {

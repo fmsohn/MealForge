@@ -639,7 +639,8 @@ textarea::placeholder {
 #settings-modal,
 #add-to-planner-modal,
 #pick-recipe-modal,
-#batch-import-modal {
+#batch-import-modal,
+#magic-link-modal {
   display: none;
   position: fixed;
   inset: 0;
@@ -653,8 +654,64 @@ textarea::placeholder {
 #settings-modal.open,
 #add-to-planner-modal.open,
 #pick-recipe-modal.open,
-#batch-import-modal.open {
+#batch-import-modal.open,
+#magic-link-modal.open {
   display: flex;
+}
+
+/* Magic Link setup modal */
+.magic-link-description {
+  margin: 0 0 1rem 0;
+  color: var(--mf-text);
+}
+
+.magic-link-step {
+  margin-bottom: 1rem;
+}
+
+.magic-link-step p {
+  margin: 0.25rem 0 0 0;
+  color: var(--mf-text);
+}
+
+.magic-link-step-label {
+  font-weight: 600;
+  color: var(--mf-text);
+  margin: 0 !important;
+}
+
+.magic-link-code-wrap {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+}
+
+.magic-link-code {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  padding: 0.75rem;
+  background: var(--mf-surface-alt);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-border-radius);
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: var(--mf-text);
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 8rem;
+  white-space: pre;
+  box-sizing: border-box;
+}
+
+.magic-link-copy-btn {
+  flex-shrink: 0;
+  min-width: 5rem;
+}
+
+#magic-link-modal .modal-actions {
+  margin-top: 1rem;
 }
 
 #settings-modal .modal-content {
