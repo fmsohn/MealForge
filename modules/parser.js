@@ -201,8 +201,73 @@ function normalizeRecipe(recipe, url) {
   return { name: String(name), ingredients, url, instructions, image: image || undefined };
 }
 
-const CORS_PROXY = 'https://corsproxy.io/?url=';
+/** CORS proxies to try in order; on non-200 (e.g. 403), the next is used. */
+const CORS_PROXIES = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/get?url=',
+  'https://thingproxy.freeboard.io/fetch/',
+];
 const FETCH_TIMEOUT_MS = 10000;
+const COOLDOWN_SECONDS = 6;
+const COOLDOWN_STORAGE_KEY = 'last_recipe_import';
+
+/**
+ * Check whether a new import is allowed based on 6-second cooldown.
+ * @returns {{ allowed: boolean, remaining: number }} - remaining is seconds left (0 if allowed)
+ */
+function checkCooldown() {
+  if (typeof localStorage === 'undefined') return { allowed: true, remaining: 0 };
+  const raw = localStorage.getItem(COOLDOWN_STORAGE_KEY);
+  const last = raw ? parseInt(raw, 10) : 0;
+  const elapsed = (Date.now() - last) / 1000;
+  const remaining = Math.max(0, COOLDOWN_SECONDS - elapsed);
+  return { allowed: remaining <= 0, remaining: Math.ceil(remaining) };
+}
+
+/**
+ * Record that an import was started (for cooldown). Call after checkCooldown() allows.
+ */
+function setCooldownTimestamp() {
+  if (typeof localStorage !== 'undefined') localStorage.setItem(COOLDOWN_STORAGE_KEY, String(Date.now()));
+}
+
+/**
+ * Fetch a URL via CORS proxies with fallback. Tries each proxy until one returns 200.
+ * For api.allorigins.win, parses JSON and extracts the 'contents' field.
+ * @param {string} targetUrl - The final URL to fetch
+ * @param {AbortSignal} signal - AbortSignal for timeout/cancel
+ * @returns {Promise<string>} - HTML (or other body) as string
+ * @throws {Error} - If all proxies fail or no proxy returns OK
+ */
+async function fetchWithProxyFallback(targetUrl, signal) {
+  const encodedUrl = encodeURIComponent(targetUrl);
+  let lastError = null;
+  for (const proxyPrefix of CORS_PROXIES) {
+    const proxyUrl = proxyPrefix + encodedUrl;
+    try {
+      const res = await fetch(proxyUrl, { signal });
+      if (!res.ok) {
+        lastError = new Error(`Proxy returned ${res.status} ${res.statusText}`);
+        continue;
+      }
+      const isAllOrigins = proxyPrefix.includes('allorigins');
+      if (isAllOrigins) {
+        const json = await res.json();
+        const contents = json && json.contents;
+        if (typeof contents !== 'string') {
+          lastError = new Error('AllOrigins proxy returned invalid contents');
+          continue;
+        }
+        return contents;
+      }
+      return await res.text();
+    } catch (err) {
+      lastError = err;
+      continue;
+    }
+  }
+  throw lastError || new Error('All proxies failed');
+}
 
 /**
  * Get primary image URL for the page: og:image first, then first <img> src.
@@ -324,20 +389,21 @@ export async function extractRecipeFromUrl(url) {
     console.log('[parser] Offline — returning error status');
     return { status: 'error', message: 'You are currently offline. Please check your connection.' };
   }
+  const cooldown = checkCooldown();
+  if (!cooldown.allowed) {
+    return {
+      status: 'error',
+      message: `To keep our import service reliable for everyone, please wait ${cooldown.remaining} seconds before the next recipe.`,
+    };
+  }
+  setCooldownTimestamp();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  console.log('[parser] Starting request to proxy...');
+  console.log('[parser] Starting request via proxy fallback...');
   console.time('ImportDuration');
   try {
-    const proxyUrl = CORS_PROXY + encodeURIComponent(url);
-    const res = await fetch(proxyUrl, { signal: controller.signal });
+    const html = await fetchWithProxyFallback(url, controller.signal);
     clearTimeout(timeoutId);
-    if (!res.ok) {
-      console.error('[parser] Fetch failed – proxy or target rejected request:', res.status, res.statusText);
-      console.timeEnd('ImportDuration');
-      return { status: 'error', message: 'The request was rejected. Please try again.' };
-    }
-    const html = await res.text();
     if (!html || !html.trim()) {
       console.error('[parser] Proxy returned no contents for:', url);
       console.log('[parser] Returning skeleton recipe (no content)');
@@ -401,7 +467,12 @@ export async function extractRecipeFromUrl(url) {
       console.log('[parser] Request timed out (proxy unresponsive)');
       return { status: 'error', message: 'Request timed out. Please check your connection and try again.' };
     }
-    const userMsg = toUserMessage(err);
+    const msg = err && err.message ? err.message : String(err);
+    const isProxyBlocked =
+      /proxy returned|all proxies failed|allorigins proxy returned invalid/i.test(msg);
+    const userMsg = isProxyBlocked
+      ? 'This website is currently blocking automatic imports. Please try importing from a different source or use the manual selection tool.'
+      : toUserMessage(err);
     return { status: 'error', message: userMsg };
   }
 }

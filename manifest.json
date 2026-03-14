@@ -1,6 +1,7 @@
 {
   "id": "/mealforge-app",
   "name": "MealForge",
+  "version": "1.1.0",
   "short_name": "MealForge",
   "description": "Offline-first recipe prep and storage",
   "start_url": "./index.html",

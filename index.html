@@ -37,8 +37,20 @@
         <h1>MealForge</h1>
       </div>
       <div class="header-add-recipe">
-        <input type="url" id="recipe-url" placeholder="Paste recipe URL…" autocomplete="url" aria-label="Recipe URL">
-        <button type="button" id="add-recipe-btn" class="btn btn-primary"><span class="btn-text">Add Recipe</span></button>
+        <label for="recipe-url" class="header-add-recipe-label">Recipe URL</label>
+        <div class="header-add-recipe-row">
+          <input type="url" id="recipe-url" class="header-add-recipe-input" autocomplete="url" aria-label="Recipe URL">
+          <div class="button-group">
+            <button type="button" id="add-recipe-btn" class="btn btn-primary btn-action"><span class="btn-text">Add Recipe</span></button>
+            <div class="import-more-wrap">
+              <button type="button" id="import-more-btn" class="btn import-more-btn" aria-label="More options" aria-haspopup="true" aria-expanded="false">⋮</button>
+              <div id="import-more-dropdown" class="import-more-dropdown is-hidden" role="menu">
+                <button type="button" id="import-more-batch" class="import-more-item" role="menuitem">Batch Import</button>
+                <button type="button" id="import-more-manual" class="import-more-item" role="menuitem">Manual Entry</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="header-actions">
         <button type="button" id="settings-btn" aria-label="Settings">⚙</button>
@@ -50,6 +62,7 @@
       <button type="button" role="tab" id="tab-shopping" aria-selected="false" aria-controls="view-shopping">Shopping List</button>
     </div>
     <div id="view-cookbook" class="view-panel is-active" role="tabpanel">
+      <input type="search" id="ingredientSearch" class="ingredient-search-input" placeholder="Search ingredients..." aria-label="Search ingredients">
       <div id="tag-filters-wrap" class="tag-filters-wrap is-hidden"></div>
       <div id="recipe-list"></div>
     </div>
@@ -133,6 +146,27 @@
       <div class="modal-actions-row">
         <button type="button" id="add-to-planner-cancel" class="btn cancel-edit-btn">Cancel</button>
         <button type="button" id="add-to-planner-save" class="btn btn-primary">Add</button>
+      </div>
+    </div>
+  </div>
+  <div id="batch-import-modal" role="dialog" aria-label="Batch Import" aria-modal="true">
+    <div class="modal-content modal-content--wide">
+      <h2>Batch Import</h2>
+      <div id="batch-import-form" class="batch-import-form">
+        <label for="batch-import-urls">Batch URLs</label>
+        <textarea id="batch-import-urls" rows="10" aria-label="Batch URLs (one per line)"></textarea>
+        <div class="modal-actions">
+          <button type="button" id="batch-import-go" class="btn btn-primary">Go</button>
+          <button type="button" id="batch-import-cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+      <div id="batch-import-progress" class="batch-import-progress is-hidden">
+        <p class="batch-import-message">Please keep this app open and your phone awake while we process your recipes. This may take a few minutes.</p>
+        <p id="batch-import-status" class="batch-import-status">Importing 1 of 10...</p>
+      </div>
+      <div id="batch-import-summary" class="batch-import-summary is-hidden">
+        <p id="batch-import-summary-text" class="batch-import-summary-text"></p>
+        <button type="button" id="batch-import-close" class="btn btn-primary">Close</button>
       </div>
     </div>
   </div>

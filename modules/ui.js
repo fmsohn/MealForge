@@ -3,7 +3,7 @@
  * Relative paths and ES modules only; no backend.
  */
 
-import { VALID_THEMES } from '../app.js';
+import { VALID_THEMES, handleButtonCooldown } from '../app.js';
 import { formatQuantityForDisplay, parseIngredient } from '../utils/recipeUtils.js';
 
 /**
@@ -223,13 +223,15 @@ export function openRecipeEdit(card, recipe, callbacks) {
  * Clears #recipe-list and renders each recipe with header (title + scale), link, ingredients (checkboxes), instructions, footer (Share, Delete, Edit, Plan).
  * @param {Array<{ id?: number, name: string, ingredients: string[], url: string, instructions?: string[], image?: string, tags?: string[] }>} recipes
  * @param {{ onShare?: (id: number) => void, onDelete?: (id: number) => void, onSaveRecipe?: (id: number, data: { ingredients: string[], instructions: string[], tags?: string[] }) => void|Promise<void>, onCancelEdit?: () => void, onAddToPlanner?: (recipe: { id: number, name: string }) => void, getTagLibrary?: () => string[] }} [callbacks]
+ * @param {{ emptyMessage?: string }} [opts] - Optional. If recipes.length === 0, show this message instead of the default empty state.
  */
-export function renderRecipeList(recipes, callbacks) {
+export function renderRecipeList(recipes, callbacks, opts) {
   const container = document.getElementById('recipe-list');
   if (!container) return;
   container.innerHTML = '';
   if (!recipes || recipes.length === 0) {
-    container.innerHTML = '<p class="recipe-list-empty">No recipes yet. Paste a recipe URL and click Add Recipe.</p>';
+    const emptyMsg = (opts && opts.emptyMessage) || 'No recipes yet. Paste a recipe URL and click Add Recipe.';
+    container.innerHTML = `<p class="recipe-list-empty">${escapeHtml(emptyMsg)}</p>`;
     return;
   }
   const onShare = callbacks && typeof callbacks.onShare === 'function' ? callbacks.onShare : null;
@@ -765,7 +767,7 @@ export function updateImportProgress(percent) {
 
 /**
  * Attaches event listeners: tabs, Add Recipe, Export Cookbook, Import, Edit, Settings (meal labels + tag library), tag filter.
- * @param {{ onAddRecipe?: (url: string) => Promise<void>, onExportCookbook?: () => Promise<void>, onImportCookbookFile?: (file: File) => Promise<void>, onEditRecipeClick?: (id: string, card: HTMLElement) => void|Promise<void>, getSettings?: () => Promise<{ mealLabels: string[], tagLibrary: string[] }>, onAddMealLabel?: (label: string) => Promise<void>, onRemoveMealLabel?: (label: string) => Promise<void>, onAddTag?: (tag: string) => Promise<void>, onRemoveTag?: (tag: string) => Promise<void>, onThemeChange?: (themeName: string) => void, onGenerateList?: () => void|Promise<void>, onDeleteList?: () => void|Promise<void>, onShoppingTabShow?: () => void|Promise<void> }} handlers
+ * @param {{ onAddRecipe?: (url: string) => Promise<void>, onOpenBatchImport?: () => void, onManualEntry?: () => void, onExportCookbook?: () => Promise<void>, onImportCookbookFile?: (file: File) => Promise<void>, onEditRecipeClick?: (id: string, card: HTMLElement) => void|Promise<void>, getSettings?: () => Promise<{ mealLabels: string[], tagLibrary: string[] }>, onAddMealLabel?: (label: string) => Promise<void>, onRemoveMealLabel?: (label: string) => Promise<void>, onAddTag?: (tag: string) => Promise<void>, onRemoveTag?: (tag: string) => Promise<void>, onThemeChange?: (themeName: string) => void, onGenerateList?: () => void|Promise<void>, onDeleteList?: () => void|Promise<void>, onShoppingTabShow?: () => void|Promise<void> }} handlers
  */
 export function initUI(handlers) {
   const addBtn = document.getElementById('add-recipe-btn');
@@ -783,15 +785,47 @@ export function initUI(handlers) {
   const viewPlanner = document.getElementById('view-planner');
   const viewShopping = document.getElementById('view-shopping');
 
-  if (addHeader && typeof handlers.onManualEntry === 'function') {
-    const manualBtn = document.createElement('button');
-    manualBtn.type = 'button';
-    manualBtn.className = 'btn btn-primary btn-manual-entry';
-    manualBtn.textContent = 'Enter Manually';
-    manualBtn.addEventListener('click', () => {
+  const importMoreBtn = document.getElementById('import-more-btn');
+  const importMoreDropdown = document.getElementById('import-more-dropdown');
+  const importMoreBatch = document.getElementById('import-more-batch');
+  const importMoreManual = document.getElementById('import-more-manual');
+
+  function closeImportMoreDropdown() {
+    if (importMoreDropdown) {
+      importMoreDropdown.classList.add('is-hidden');
+      if (importMoreBtn) importMoreBtn.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  if (importMoreBtn && importMoreDropdown) {
+    importMoreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !importMoreDropdown.classList.contains('is-hidden');
+      if (isOpen) {
+        closeImportMoreDropdown();
+      } else {
+        importMoreDropdown.classList.remove('is-hidden');
+        importMoreBtn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.import-more-wrap')) closeImportMoreDropdown();
+  });
+  if (importMoreDropdown) {
+    importMoreDropdown.addEventListener('click', (e) => e.stopPropagation());
+  }
+  if (importMoreBatch && typeof handlers.onOpenBatchImport === 'function') {
+    importMoreBatch.addEventListener('click', () => {
+      closeImportMoreDropdown();
+      handlers.onOpenBatchImport();
+    });
+  }
+  if (importMoreManual && typeof handlers.onManualEntry === 'function') {
+    importMoreManual.addEventListener('click', () => {
+      closeImportMoreDropdown();
       handlers.onManualEntry();
     });
-    addHeader.appendChild(manualBtn);
   }
 
   if (tabCookbook && tabPlanner && tabShopping && viewCookbook && viewPlanner && viewShopping) {
@@ -902,7 +936,7 @@ export function initUI(handlers) {
     addBtn.addEventListener('click', async () => {
       const url = (urlInput.value || '').trim();
       if (!url) return;
-      addBtn.disabled = true;
+      handleButtonCooldown(addBtn, 6);
       addBtn.classList.add('is-adding');
       setBtnLabel(ADD_BTN_BUSY_LABEL);
       updateImportProgress(0);
@@ -910,10 +944,9 @@ export function initUI(handlers) {
         const saved = await handlers.onAddRecipe(url);
         if (saved && saved.id) urlInput.value = '';
       } finally {
-        addBtn.disabled = false;
         addBtn.classList.remove('is-adding');
-        setBtnLabel(ADD_BTN_LABEL);
         updateImportProgress(0);
+        /* Label is restored by handleButtonCooldown after 6s */
       }
     });
   }

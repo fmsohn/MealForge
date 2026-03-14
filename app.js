@@ -121,8 +121,38 @@ import {
   openPickRecipeModal,
 } from './modules/ui.js';
 
+/**
+ * Put the Add Recipe button into a 6-second cooldown: disabled, red style, "Wait [X]s" countdown.
+ * After `seconds`, re-enables the button, removes .btn-cooldown, and restores the original label.
+ * @param {HTMLButtonElement} buttonElement - The Add Recipe button
+ * @param {number} seconds - Cooldown duration (e.g. 6)
+ */
+export function handleButtonCooldown(buttonElement, seconds) {
+  if (!buttonElement) return;
+  const btnText = buttonElement.querySelector('.btn-text');
+  const setLabel = (text) => { if (btnText) btnText.textContent = text; else buttonElement.textContent = text; };
+  const originalLabel = btnText ? btnText.textContent : buttonElement.textContent;
+  buttonElement.disabled = true;
+  buttonElement.classList.add('btn-cooldown');
+  let left = seconds;
+  setLabel(left > 0 ? `Wait ${left}s` : 'Add Recipe');
+  const intervalId = setInterval(() => {
+    left -= 1;
+    if (left <= 0) {
+      clearInterval(intervalId);
+      buttonElement.disabled = false;
+      buttonElement.classList.remove('btn-cooldown');
+      setLabel(originalLabel);
+    } else {
+      setLabel(`Wait ${left}s`);
+    }
+  }, 1000);
+}
+
 /** Regex to extract the first http(s) URL from a string (e.g. "Link: https://example.com/recipe") */
 const URL_EXTRACT_PATTERN = /(https?:\/\/[^\s]+)/;
+
+const BATCH_IMPORT_DELAY_MS = 6000;
 
 /**
  * Extracts the first valid URL (http:// or https://) from input. Use to tolerate prefixes like "URL: " or "Link: ".
@@ -187,6 +217,40 @@ export async function importNewRecipe(url, opts = {}) {
   }
 }
 
+/**
+ * Process a batch of recipe URLs: import each with a 6-second delay between calls to respect cooldown.
+ * @param {string[]} urlArray - Array of recipe URLs
+ * @param {{ onStatus: (message: string) => void, onComplete: (result: { succeeded: number, failed: number, duplicates: number }) => void }} callbacks
+ * @returns {Promise<void>}
+ */
+export async function processBatchImport(urlArray, { onStatus, onComplete }) {
+  let succeeded = 0;
+  let failed = 0;
+  let duplicates = 0;
+  const total = urlArray.length;
+  for (let i = 0; i < total; i++) {
+    onStatus(`Importing ${i + 1} of ${total}...`);
+    try {
+      const result = await importNewRecipe(urlArray[i]);
+      if (result && result.status === 'error') {
+        failed++;
+      } else if (result && result.duplicate) {
+        duplicates++;
+      } else if (result && (result.id || result.addedCount)) {
+        succeeded++;
+      } else {
+        failed++;
+      }
+    } catch (_) {
+      failed++;
+    }
+    if (i < total - 1) {
+      await new Promise((r) => setTimeout(r, BATCH_IMPORT_DELAY_MS));
+    }
+  }
+  onComplete({ succeeded, failed, duplicates });
+}
+
 const DEFAULT_MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner'];
 
 /**
@@ -215,27 +279,69 @@ async function getSettings() {
 /** Tag filter state: null = All, string = filter by that tag */
 let selectedTagFilter = null;
 
-/** Load recipes (optionally filtered by tag), refresh tag filters, and render list. */
+/** Cached list and callbacks for ingredient search (re-filter without re-fetching). */
+let lastRecipeListForSearch = [];
+let lastRecipeListCallbacks = null;
+
+/**
+ * Debounce: run `fn` only after `ms` ms have passed since the last call.
+ * @param {() => void} fn
+ * @param {number} ms
+ * @returns {() => void}
+ */
+function debounce(fn, ms) {
+  let timeoutId = null;
+  return () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      timeoutId = null;
+      fn();
+    }, ms);
+  };
+}
+
+/**
+ * Filter recipes by search query (case-insensitive): match recipe title or any ingredient. Used for display only; does not re-fetch.
+ */
+function applyIngredientFilter() {
+  const input = document.getElementById('ingredientSearch');
+  const query = (input && input.value ? input.value.trim() : '') || '';
+  const list = query
+    ? lastRecipeListForSearch.filter((recipe) => {
+        const q = query.toLowerCase();
+        const titleMatch = String(recipe.name || '').toLowerCase().includes(q);
+        const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+        const ingredientMatch = ingredients.some((ing) => String(ing).toLowerCase().includes(q));
+        return titleMatch || ingredientMatch;
+      })
+    : lastRecipeListForSearch;
+  const opts = list.length === 0 && query ? { emptyMessage: 'No recipes found.' } : undefined;
+  renderRecipeList(list, lastRecipeListCallbacks, opts);
+}
+
+/** Load recipes (optionally filtered by tag), refresh tag filters, and render list. Applies ingredient search filter if present. */
 async function refreshRecipeList() {
   const [recipes, settings] = await Promise.all([db.recipes.toArray(), getSettings()]);
   let list = recipes;
   if (selectedTagFilter != null) {
     list = list.filter((r) => Array.isArray(r.tags) && r.tags.includes(selectedTagFilter));
   }
-  requestAnimationFrame(() => {
-    renderTagFilters(settings.tagLibrary, selectedTagFilter, (tag) => {
-      selectedTagFilter = tag;
-      refreshRecipeList();
-    });
-  });
-  renderRecipeList(list, {
+  lastRecipeListForSearch = list;
+  lastRecipeListCallbacks = {
     onShare: (id) => exportSingleRecipe(id),
     onDelete: (id) => deleteRecipe(id),
     onSaveRecipe: (id, data) => updateRecipe(id, data),
     onCancelEdit: () => refreshRecipeList(),
     getTagLibrary: () => settings.tagLibrary,
     onAddToPlanner: (recipe) => addRecipeToPlannerFromCard(recipe),
+  };
+  requestAnimationFrame(() => {
+    renderTagFilters(settings.tagLibrary, selectedTagFilter, (tag) => {
+      selectedTagFilter = tag;
+      refreshRecipeList();
+    });
   });
+  applyIngredientFilter();
 }
 
 /**
@@ -476,7 +582,28 @@ function runApp() {
       });
     });
   }
+
+  const batchImportModal = document.getElementById('batch-import-modal');
+  const batchImportForm = document.getElementById('batch-import-form');
+  const batchImportProgress = document.getElementById('batch-import-progress');
+  const batchImportSummary = document.getElementById('batch-import-summary');
+
+  function openBatchImportModal() {
+    if (batchImportModal) batchImportModal.classList.add('open');
+    if (batchImportForm) batchImportForm.classList.remove('is-hidden');
+    if (batchImportProgress) batchImportProgress.classList.add('is-hidden');
+    if (batchImportSummary) batchImportSummary.classList.add('is-hidden');
+  }
+
+  function closeBatchImportModal() {
+    if (batchImportModal) batchImportModal.classList.remove('open');
+    if (batchImportForm) batchImportForm.classList.remove('is-hidden');
+    if (batchImportProgress) batchImportProgress.classList.add('is-hidden');
+    if (batchImportSummary) batchImportSummary.classList.add('is-hidden');
+  }
+
   initUI({
+    onOpenBatchImport: openBatchImportModal,
     onAddRecipe: async (url) => {
       try {
         const saved = await importNewRecipe(url, { onProgress: updateImportProgress });
@@ -676,6 +803,71 @@ function runApp() {
   },
   onThemeChange: (themeName) => setTheme(themeName),
   });
+
+  const batchImportUrls = document.getElementById('batch-import-urls');
+  const batchImportGo = document.getElementById('batch-import-go');
+  const batchImportCancel = document.getElementById('batch-import-cancel');
+  const batchImportStatus = document.getElementById('batch-import-status');
+  const batchImportSummaryText = document.getElementById('batch-import-summary-text');
+  const batchImportClose = document.getElementById('batch-import-close');
+
+  if (batchImportCancel) {
+    batchImportCancel.addEventListener('click', closeBatchImportModal);
+  }
+  if (batchImportClose) {
+    batchImportClose.addEventListener('click', () => {
+      closeBatchImportModal();
+      refreshRecipeList();
+    });
+  }
+  if (batchImportModal) {
+    batchImportModal.addEventListener('click', (e) => {
+      if (e.target === batchImportModal) closeBatchImportModal();
+    });
+  }
+  if (batchImportGo && batchImportUrls && batchImportStatus && batchImportSummary && batchImportSummaryText && batchImportProgress) {
+    batchImportGo.addEventListener('click', async () => {
+      const raw = (batchImportUrls.value || '').trim();
+      const urls = raw
+        .split(/\n/)
+        .map((line) => extractUrlFromInput(line))
+        .filter((u) => u.length > 0);
+      if (urls.length === 0) {
+        alert('Please enter at least one recipe URL (one per line).');
+        return;
+      }
+      batchImportForm.classList.add('is-hidden');
+      batchImportProgress.classList.remove('is-hidden');
+      batchImportStatus.textContent = `Importing 1 of ${urls.length}...`;
+      try {
+        await processBatchImport(urls, {
+          onStatus: (msg) => {
+            batchImportStatus.textContent = msg;
+          },
+          onComplete: ({ succeeded, failed, duplicates }) => {
+            batchImportProgress.classList.add('is-hidden');
+            const parts = [];
+            if (succeeded > 0) parts.push(`${succeeded} succeeded`);
+            if (failed > 0) parts.push(`${failed} failed`);
+            if (duplicates > 0) parts.push(`${duplicates} duplicate${duplicates !== 1 ? 's' : ''} skipped`);
+            batchImportSummaryText.textContent = parts.length ? parts.join('. ') : 'No imports run.';
+            batchImportSummary.classList.remove('is-hidden');
+            refreshRecipeList();
+          },
+        });
+      } catch (err) {
+        batchImportProgress.classList.add('is-hidden');
+        batchImportSummaryText.textContent = 'Batch import failed: ' + (err && err.message ? err.message : String(err));
+        batchImportSummary.classList.remove('is-hidden');
+      }
+    });
+  }
+
+  const ingredientSearchEl = document.getElementById('ingredientSearch');
+  if (ingredientSearchEl) {
+    const debouncedApplyFilter = debounce(applyIngredientFilter, 200);
+    ingredientSearchEl.addEventListener('input', debouncedApplyFilter);
+  }
 
   refreshRecipeList();
   refreshPlanner();
