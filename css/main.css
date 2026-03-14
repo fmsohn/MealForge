@@ -223,6 +223,20 @@ header {
   min-width: 0;
 }
 
+.magic-link-cancel {
+  flex-shrink: 0;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  background: transparent;
+  color: var(--mf-text-muted);
+  border: 0;
+  cursor: pointer;
+}
+
+.magic-link-cancel:hover {
+  color: var(--mf-text);
+}
+
 .button-group {
   display: flex;
   gap: 4px;
