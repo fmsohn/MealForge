@@ -40,7 +40,7 @@
         <label for="recipe-url" class="header-add-recipe-label">Recipe URL</label>
         <div class="header-add-recipe-row">
           <input type="url" id="recipe-url" class="header-add-recipe-input" autocomplete="url" aria-label="Recipe URL">
-          <button type="button" id="magic-link-cancel" class="btn magic-link-cancel is-hidden" aria-label="Cancel Magic Link">Cancel</button>
+          <button type="button" id="magic-link-cancel" class="btn magic-link-cancel is-hidden" aria-label="Clear URL and don't import">Clear URL</button>
           <div class="button-group">
             <button type="button" id="add-recipe-btn" class="btn btn-primary btn-action"><span class="btn-text">Add Recipe</span></button>
             <div class="import-more-wrap">
@@ -179,7 +179,7 @@
       <div class="magic-link-step">
         <p class="magic-link-step-label">Step 1: Copy this code</p>
         <div class="magic-link-code-wrap">
-          <code id="magic-link-code" class="magic-link-code">javascript:(function(){var t=encodeURIComponent(document.title);var u=encodeURIComponent(window.location.href);window.location.href='https://fmsohn.github.io/mealforge/?title='+t+'&url='+u;})();</code>
+          <code id="magic-link-code" class="magic-link-code">javascript:(function(){var t=encodeURIComponent(document.title);var u=encodeURIComponent(window.location.href);window.location.href='https://fmsohn.github.io/MealForge/?title='+t+'&url='+u;})();</code>
           <button type="button" id="magic-link-copy-btn" class="btn btn-primary magic-link-copy-btn">Copy</button>
         </div>
       </div>

@@ -571,7 +571,7 @@ async function refreshShoppingList(planId) {
 }
 
 function runApp() {
-  /** Magic Link: read ?title= and ?url=; only pre-fill when both present. Do NOT clear URL on load — cleanup happens on Save or Cancel. */
+  /** Magic Link (Manual-Only): read ?title= and ?url=; only pre-fill when both present. Never trigger import/scrape on load — user must click Add Recipe. */
   let magicLinkUrl = null;
   const searchParams = new URLSearchParams(window.location.search);
   const magicTitle = searchParams.get('title');
@@ -580,6 +580,7 @@ function runApp() {
   if (hasMagicLinkParams) {
     magicLinkUrl = magicUrl;
   }
+  /* No auto-import: when magic link params exist we only pre-fill the URL input and switch tabs; import runs only when user clicks Add Recipe. */
 
   const installBtn = document.getElementById('installBtn');
   if (installBtn) {
@@ -639,7 +640,7 @@ function runApp() {
     magicLinkModal.addEventListener('click', (e) => { if (e.target === magicLinkModal) closeMagicLinkModal(); });
   }
 
-  /** Clear Magic Link URL params and hide Cancel; call on Save (Add Recipe) or Cancel so scraper doesn't re-trigger. */
+  /** Strip ?title= and ?url= from the address bar using replaceState. Call only after successful import (onAddRecipe) or when user cancels (cancelMagicImport). */
   const magicLinkCancel = document.getElementById('magic-link-cancel');
   function clearMagicLinkParams() {
     const params = new URLSearchParams(window.location.search);
@@ -650,19 +651,20 @@ function runApp() {
     if (magicLinkCancel) magicLinkCancel.classList.add('is-hidden');
   }
 
+  function cancelMagicImport() {
+    clearMagicLinkParams();
+    const urlInput = document.getElementById('recipe-url');
+    if (urlInput) urlInput.value = '';
+  }
+
   if (magicLinkCancel) {
-    magicLinkCancel.addEventListener('click', () => {
-      clearMagicLinkParams();
-      const urlInput = document.getElementById('recipe-url');
-      if (urlInput) urlInput.value = '';
-    });
+    magicLinkCancel.addEventListener('click', cancelMagicImport);
   }
 
   initUI({
     onOpenBatchImport: openBatchImportModal,
     onOpenMagicLink: openMagicLinkModal,
     onAddRecipe: async (url) => {
-      clearMagicLinkParams();
       try {
         const saved = await importNewRecipe(url, { onProgress: updateImportProgress });
         console.log('[import] importNewRecipe return value:', saved);
@@ -682,6 +684,8 @@ function runApp() {
           return saved;
         }
         await refreshRecipeList();
+        /* Only clear magic link params after a successful import. */
+        clearMagicLinkParams();
         return saved;
       } catch (err) {
         const msg = err && err.message ? err.message : String(err);
@@ -930,7 +934,7 @@ function runApp() {
   refreshRecipeList();
   refreshPlanner();
 
-  /** Pre-fill Add Recipe and switch to Cookbook when opened via Magic Link; show Cancel so user can dismiss without saving. */
+  /** Pre-fill URL and switch to Cookbook when opened via Magic Link. Manual-only: do NOT call importNewRecipe or any scraping here — user must click Add Recipe to start import. */
   if (magicLinkUrl) {
     const urlInput = document.getElementById('recipe-url');
     if (urlInput) {

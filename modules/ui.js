@@ -936,6 +936,7 @@ export function initUI(handlers) {
     });
   }
 
+  /* Add Recipe button is the only place that triggers URL import (onAddRecipe). Manual-only: no auto-import on load or magic link. */
   if (addBtn && urlInput && handlers.onAddRecipe) {
     const btnText = addBtn.querySelector('.btn-text');
     const setBtnLabel = (text) => { if (btnText) btnText.textContent = text; else addBtn.textContent = text; };
